@@ -1,0 +1,70 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id     Int     @id @default(autoincrement()) // PRIMARY INDEX: Built-in, fastest way to find a user.
+  email  String  @unique // UNIQUE INDEX: Prevents duplicates & optimizes searches by email.
+  
+  orders Order[]
+}
+
+model Product {
+  id    Int         @id @default(autoincrement())
+  name  String      @db.VarChar(255)
+  price Float
+  
+  items OrderItem[]
+
+  // FULL-TEXT INDEX (PostgreSQL): Optimized for "Search bars" where users type partial names.
+  // Requires 'fullTextSearch' preview feature enabled in the generator block.
+  @@index([name])
+}
+
+model Order {
+  // --- 1. ID & Scalars (Physical Columns) ---
+  id     Int @id @default(autoincrement())
+  userId Int
+
+  // --- 2. Relation Fields (Virtual) ---
+  user    User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items   OrderItem[]
+  payment Payment?
+
+  // --- 3. Metadata & Timestamps ---
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+ 
+  // --- 4. Database Optimization (Indexes) ---
+  @@index([userId, createdAt]) // Optimized for: "User X's orders sorted by date"
+}
+
+model OrderItem {
+  id        Int @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Int
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  // COVERING INDEX: Includes both IDs to speed up JOINs between Orders and Products.
+  @@index([orderId, productId])
+}
+
+model Payment {
+  id      Int   @id @default(autoincrement())
+  orderId Int   @unique // UNIQUE CONSTRAINT INDEX: Ensures one payment per order (1:1 relationship).
+  amount  Float
+
+  order Order @relation(fields: [orderId], references: [id])
+}
