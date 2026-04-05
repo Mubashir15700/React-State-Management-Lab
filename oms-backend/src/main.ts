@@ -1,10 +1,12 @@
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { PrismaExceptionFilter } from './prisma-exception/prisma-exception.filter';
+import { MetricsInterceptor } from './metrics/metrics.interceptor';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   app.useGlobalFilters(new PrismaExceptionFilter());
+  app.useGlobalInterceptors(new MetricsInterceptor());
 
   // Enable CORS so React can talk to Nest
   app.enableCors({
